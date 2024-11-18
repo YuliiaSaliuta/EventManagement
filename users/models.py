@@ -35,6 +35,18 @@ class User(AbstractUser):
     def __str__(self) -> str:
         return f"{self.email}"
 
+    def is_organizer(self):
+        """
+        Return True if the user is an organizer, otherwise False.
+        """
+        return hasattr(self, "organizer_profile")
+
+    def is_participant(self):
+        """
+        Return True if the user is a participant, otherwise False.
+        """
+        return hasattr(self, "participant_profile")
+
 
 class Participant(models.Model):
     """
