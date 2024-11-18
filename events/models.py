@@ -5,13 +5,14 @@ from django.db import models
 from django.db.models import F, Q
 from django.utils import timezone
 
-from users.models import Organizer
+from users.models import Organizer, Participant
 from utils.choices import (
     EventType,
     EventStatus,
     DeliveryType,
     BaseSocialMedia,
     TopicCategory,
+    EventRegistrationStatus,
 )
 from utils.utils import create_custom_image_file_path, generate_unique_slug
 
@@ -157,7 +158,18 @@ class Event(BaseModel):
         """
         Returns the number of participants in the event.
         """
-        return self.participants.count()
+        return self.registrations.filter(status=EventRegistrationStatus.CONFIRMED).count()
+
+
+    @property
+    def available_capacity(self):
+        """
+        Returns the number of remaining available spots for this event.
+        If capacity is not set (None or blank), the event is considered to have unlimited spots.
+        """
+        if self.capacity is None or self.capacity == 0:
+            return None
+        return self.capacity - self.participants_count
 
     def __str__(self) -> str:
         return f"{self.title} ({self.event_start_date} - {self.event_end_date})"
@@ -176,3 +188,30 @@ class EventSocialMedia(BaseSocialMedia):
         verbose_name = "Event Social Media Link"
         verbose_name_plural = "Event Social Media Links"
         unique_together = [("event", "platform")]
+
+
+class EventRegistration(BaseModel):
+    participant = models.ForeignKey(
+        Participant, on_delete=models.CASCADE, verbose_name="Participant", related_name="registrations"
+    )
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, verbose_name="Event", related_name="registrations")
+    status = models.CharField(
+        max_length=20,
+        choices=EventRegistrationStatus.choices,
+        default=EventRegistrationStatus.PENDING,
+        verbose_name="Event Registration Status",
+    )
+
+    class Meta:
+        unique_together = ("participant", "event")
+
+    def save(self, *args, **kwargs):
+        """
+        Override save to handle the logic for available capacity.
+        """
+        if self.event.available_capacity is not None and self.event.available_capacity == 0:
+            self.status = EventRegistrationStatus.WAITLIST
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.participant.user.email} registered for {self.event.title} - {self.status}"

@@ -2,8 +2,9 @@ from django.db import IntegrityError
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from events.models import Topic, Company, CompanySocialMedia, EventSocialMedia, Event
-from users.models import Organizer
+from events.models import Topic, Company, CompanySocialMedia, EventSocialMedia, Event, EventRegistration
+from users.models import Organizer, Participant
+from utils.choices import EventRegistrationStatus
 
 
 class CompanySocialMediaSerializer(serializers.ModelSerializer):
@@ -135,6 +136,7 @@ class EventSerializer(serializers.ModelSerializer):
 
     social_media = CompanySocialMediaSerializer(many=True, required=False)
     topics = serializers.PrimaryKeyRelatedField(queryset=Topic.objects.all(), many=True)
+    available_capacity = serializers.SerializerMethodField()
 
     class Meta:
         model = Event
@@ -161,8 +163,9 @@ class EventSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "social_media",
+            "available_capacity",
         ]
-        read_only_fields = ["id", "slug", "created_at", "updated_at"]
+        read_only_fields = ["id", "slug", "created_at", "updated_at", "available_capacity"]
 
     def __init__(self, *args, **kwargs):
         """
@@ -253,4 +256,64 @@ class EventSerializer(serializers.ModelSerializer):
             if platform not in updated_platforms:
                 sm_instance.delete()
 
+        return instance
+
+    def get_available_capacity(self, obj):
+        """
+        Returns the available capacity of the event.
+        """
+        return obj.available_capacity
+
+
+class EventRegistrationSerializer(serializers.ModelSerializer):
+    status = serializers.ChoiceField(choices=EventRegistrationStatus.choices, default=EventRegistrationStatus.PENDING)
+
+    class Meta:
+        model = EventRegistration
+        fields = ["id", "participant", "event", "status", "created_at", "updated_at"]
+        read_only_fields = ["id", "status", "created_at", "updated_at"]
+
+    def __init__(self, *args, **kwargs):
+        """
+        Modify the serializer fields dynamically based on the user's role.
+        If the user is a participant, make the 'participant' field auto-filled with the logged-in user.
+        """
+        user = kwargs["context"]["request"].user
+        if user.is_participant():
+            self.fields["participant"].read_only = True
+        super().__init__(*args, **kwargs)
+
+    def validate(self, data):
+        """
+        Modify the 'participant' field dynamically based on the user's role.
+        If the user is a participant, set the 'participant' field to the logged-in user.
+        """
+        user = self.context["request"].user
+        if user.is_participant():
+            try:
+                participant = Participant.objects.get(user=user)
+                data["participant"] = participant
+            except Participant.DoesNotExist:
+                raise ValidationError("The current user is not associated with any participant profile.")
+        return data
+
+    def create(self, validated_data):
+        """
+        Handle the registration of the participant for an event.
+        """
+        participant = validated_data["participant"]
+        event = validated_data["event"]
+
+        if EventRegistration.objects.filter(participant=participant, event=event).exists():
+            raise serializers.ValidationError("Participant is already registered for this event.")
+
+        registration = EventRegistration.objects.create(**validated_data)
+        return registration
+
+    def update(self, instance, validated_data):
+        """
+        Handle the update of the registration.
+        """
+        instance.status = validated_data.get("status", instance.status)
+        instance.save()
         return instance

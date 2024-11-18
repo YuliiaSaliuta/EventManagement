@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib import admin
 
-from events.models import Topic, CompanySocialMedia, Company, EventSocialMedia, Event
+from events.models import Topic, CompanySocialMedia, Company, EventSocialMedia, Event, EventRegistration
 
 
 class CompanySocialMediaInline(admin.TabularInline):
@@ -56,7 +56,9 @@ class EventSocialMediaInline(admin.TabularInline):
 
 
 class EventForm(forms.ModelForm):
-    topics = forms.ModelMultipleChoiceField(queryset=Topic.objects.all(), widget=forms.CheckboxSelectMultiple, required=False)
+    topics = forms.ModelMultipleChoiceField(
+        queryset=Topic.objects.all(), widget=forms.CheckboxSelectMultiple, required=False
+    )
 
     class Meta:
         model = Event
@@ -86,3 +88,20 @@ class EventSocialMediaAdmin(admin.ModelAdmin):
     list_display = ("event", "platform", "url")
     search_fields = ("event__title", "platform")
     list_filter = ("platform", "event")
+
+
+@admin.register(EventRegistration)
+class EventRegistrationAdmin(admin.ModelAdmin):
+    list_display = ("id", "participant", "event", "status")
+    list_filter = ("status", "event__title", "participant__user__email")
+    search_fields = ("event__title", "participant__user__email")
+    raw_id_fields = ("participant", "event")
+    ordering = ("-created_at",)
+    readonly_fields = ("created_at", "updated_at")
+
+    def get_queryset(self, request):
+        """
+        Customize queryset to prefetch related fields for better performance.
+        """
+        queryset = super().get_queryset(request)
+        return queryset.select_related("participant__user", "event")
