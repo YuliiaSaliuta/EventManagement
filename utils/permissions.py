@@ -19,6 +19,6 @@ class IsOrganizerOrAdminUserOrReadOnly(BasePermission):
             return True
 
         # Allow if the user is the organizer
-        if request.user and request.user.is_organizer:
+        if request.user and request.user.is_organizer():
             return True
         return False
