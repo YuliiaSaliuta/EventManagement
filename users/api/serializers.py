@@ -7,6 +7,7 @@ from rest_framework.serializers import ModelSerializer, CharField, ValidationErr
 
 from events.models import Topic
 from users.models import Participant, Organizer
+from utils.tasks import send_organizer_credentials_email
 
 User = get_user_model()
 
@@ -93,13 +94,16 @@ class CreateOrganizerSerializer(CreateUserSerializer):
         Create an Organizer account associated with the user.
         """
         random_password = secrets.token_urlsafe(10)
-        print(random_password)
         user = self.create_user({**validated_data, "password": random_password})
-        # TODO: Implement email notification logic to send credentials to the user
         Organizer.objects.create(
             user=user,
             bio=validated_data.get("bio"),
             city=validated_data.get("city"),
             country=validated_data.get("country"),
+        )
+        send_organizer_credentials_email.delay(
+            email=user.email,
+            password=random_password,
+            first_name=user.first_name,
         )
         return user

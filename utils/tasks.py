@@ -53,3 +53,31 @@ def send_registration_email(user_email, registration_details):
         from_email,
         [user_email],
     )
+
+
+@shared_task
+def send_organizer_credentials_email(email, password, first_name):
+    """
+    Sends an email with credentials to the newly created organizer.
+    """
+    subject = "Your Organizer Account Credentials"
+    message = f"""
+    Dear {first_name},
+
+    Your organizer account has been created successfully. Below are your credentials:
+
+    Email: {email}
+    Password: {password}
+
+    Please log in and change your password immediately for security purposes.
+
+    Best regards,
+    Event Management Team
+    """
+    from_email = settings.EMAIL_HOST_USER
+    send_mail(
+        subject,
+        message.strip(),
+        from_email,
+        [email],
+    )
