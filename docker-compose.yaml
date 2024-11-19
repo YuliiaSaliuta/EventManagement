@@ -1,0 +1,83 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:14.1-alpine
+    volumes:
+      - ./db:/var/lib/postgresql/data
+    networks:
+      - database_network
+    ports:
+      - "5433:5432"
+    command: [ "postgres", "-c", "log_statement=all" ]
+    env_file:
+      - .env
+    expose:
+      - 5430
+
+  api:
+    restart: always
+    build: .
+    command: >
+      sh -c "python manage.py makemigrations &&
+            python manage.py migrate &&
+            python manage.py collectstatic --noinput &&
+            python manage.py runserver 0.0.0.0:8000"
+    depends_on:
+      - db
+    volumes:
+      - .:/usr/src/event-management-api/
+    networks:
+      - database_network
+      - redis_network
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+
+  redis:
+    image: "redis:alpine"
+    networks:
+      - redis_network
+    expose:
+      - 6379
+
+  celery:
+    build: .
+    working_dir: /usr/src/event-management-api/
+    command: "celery -A config worker -l DEBUG"
+    networks:
+      - database_network
+      - redis_network
+    volumes:
+      - .:/usr/src/event-management-api/
+    env_file:
+      - .env
+    depends_on:
+      - redis
+
+  flower:
+      image: mher/flower
+      command: [ "celery", "flower", "--broker=redis://redis:6379/0" ]
+      volumes:
+        - flower_volume:/data
+      env_file:
+        - .env
+      ports:
+        - "5555:5555"
+      depends_on:
+        - celery
+        - redis
+      networks:
+        - database_network
+        - redis_network
+
+
+volumes:
+  db:
+  flower_volume:
+
+
+networks:
+  database_network:
+  redis_network:
