@@ -102,8 +102,8 @@ class Event(BaseModel):
     event_end_time = models.TimeField(verbose_name="End Time", blank=True, null=True)
     event_start_date = models.DateField(verbose_name="Start Date")
     event_end_date = models.DateField(verbose_name="End Date", blank=True, null=True)
-    city = models.CharField(max_length=20, blank=True, verbose_name="City")
-    country = models.CharField(max_length=20, blank=True, verbose_name="Country")
+    city = models.CharField(max_length=50, blank=True, verbose_name="City")
+    country = models.CharField(max_length=50, blank=True, verbose_name="Country")
     location = models.CharField(max_length=255, verbose_name="Event Location")
     capacity = models.PositiveIntegerField(
         null=True,
@@ -113,8 +113,8 @@ class Event(BaseModel):
     )
 
     delivery_type = models.CharField(max_length=10, choices=DeliveryType.choices, verbose_name="Delivery Type")
-    status = models.CharField(max_length=20, choices=EventStatus.choices, verbose_name="Event Status")
-    event_type = models.CharField(max_length=20, choices=EventType.choices, verbose_name="Event Type")
+    status = models.CharField(max_length=50, choices=EventStatus.choices, verbose_name="Event Status")
+    event_type = models.CharField(max_length=50, choices=EventType.choices, verbose_name="Event Type")
     topics = models.ManyToManyField(Topic, related_name="events", verbose_name="Event Topics", blank=True)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="events", verbose_name="Company")
     organizer = models.ForeignKey(Organizer, on_delete=models.CASCADE, related_name="events", verbose_name="Organizer")
@@ -196,7 +196,7 @@ class EventRegistration(BaseModel):
     )
     event = models.ForeignKey(Event, on_delete=models.CASCADE, verbose_name="Event", related_name="registrations")
     status = models.CharField(
-        max_length=20,
+        max_length=50,
         choices=EventRegistrationStatus.choices,
         default=EventRegistrationStatus.PENDING,
         verbose_name="Event Registration Status",

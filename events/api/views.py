@@ -14,6 +14,7 @@ from utils.permissions import (
     IsOrganizerOrAdminUser,
     IsParticipantOrAdminUser,
 )
+from utils.tasks import send_registration_email
 
 
 @extend_schema_view(
@@ -168,6 +169,8 @@ class EventRegistrationCreateView(APIView):
         serializer = EventRegistrationSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        registration_details = serializer.data
+        send_registration_email.delay(request.user.email, registration_details)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 

@@ -30,7 +30,7 @@ class User(AbstractUser):
     id = models.UUIDField(primary_key=True, editable=False, default=uuid.uuid4)
     email = models.EmailField(unique=True, verbose_name="Email Address")
     avatar = models.ImageField(blank=True, null=True, upload_to=get_avatar_path, verbose_name="Avatar Image")
-    phone = models.CharField(max_length=20, unique=True, verbose_name="Phone Number")
+    phone = models.CharField(max_length=50, unique=True, verbose_name="Phone Number")
 
     def __str__(self) -> str:
         return f"{self.email}"
@@ -80,8 +80,8 @@ class Organizer(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="organizer_profile", verbose_name="User"
     )
     bio = models.TextField(max_length=500, blank=True, verbose_name="Biography")
-    city = models.CharField(max_length=20, blank=True, verbose_name="City")
-    country = models.CharField(max_length=20, blank=True, verbose_name="Country")
+    city = models.CharField(max_length=50, blank=True, verbose_name="City")
+    country = models.CharField(max_length=50, blank=True, verbose_name="Country")
 
     def __str__(self) -> str:
         return f"Organizer: {self.user.email}"
