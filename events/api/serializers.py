@@ -172,9 +172,12 @@ class EventSerializer(serializers.ModelSerializer):
         Modify the serializer fields dynamically based on the user's role.
         If the user is an organizer, make the 'organizer' field auto-filled with the logged-in user.
         """
-        user = kwargs["context"]["request"].user
-        if user.is_organizer():
-            self.fields["organizer"].read_only = True
+        context = kwargs.get("context", {})
+        request = context.get("request")
+        if request:
+            user = request.user
+            if user.is_organizer():
+                self.fields["organizer"].read_only = True
         super().__init__(*args, **kwargs)
 
     def validate(self, data):
@@ -278,9 +281,13 @@ class EventRegistrationSerializer(serializers.ModelSerializer):
         Modify the serializer fields dynamically based on the user's role.
         If the user is a participant, make the 'participant' field auto-filled with the logged-in user.
         """
-        user = kwargs["context"]["request"].user
-        if user.is_participant():
-            self.fields["participant"].read_only = True
+
+        context = kwargs.get("context", {})
+        request = context.get("request")
+        if request:
+            user = request.user
+            if user.is_participant():
+                self.fields["participant"].read_only = True
         super().__init__(*args, **kwargs)
 
     def validate(self, data):

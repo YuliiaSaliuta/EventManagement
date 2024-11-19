@@ -75,7 +75,7 @@ class EventAdmin(admin.ModelAdmin):
 
     list_display = ("title", "event_start_date", "event_start_time", "status")
     search_fields = ("title", "description", "organizer__user__email", "company__name")
-    list_filter = ("status", "event_start_date", "event_start_time", "city", "country")
+    list_filter = ("status", "event_start_date", "event_start_time", "city", "country", "organizer__user__email")
     inlines = [EventSocialMediaInline]
 
 

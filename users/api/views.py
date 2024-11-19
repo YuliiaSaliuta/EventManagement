@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import AllowAny, IsAdminUser
@@ -11,6 +12,18 @@ from users.api.serializers import CreateAccountSerializer, CreateOrganizerSerial
 User = get_user_model()
 
 
+@extend_schema(
+    summary="Create a new user account",
+    description=(
+        "Registers a new user with the participant role. "
+        "Upon successful registration, it returns JWT tokens (access and refresh) for authentication."
+    ),
+    request=CreateAccountSerializer,
+    responses={
+        201: "User created successfully with tokens returned.",
+        400: "Validation error. Check the input fields.",
+    },
+)
 class CreateAccountView(APIView):
     """
     API view for creating a new user account with an associated Participant profile.
@@ -34,6 +47,19 @@ class CreateAccountView(APIView):
         )
 
 
+@extend_schema(
+    summary="Create an Organizer profile",
+    description=(
+        "Allows superadmins to create a new organizer profile. "
+        "This endpoint is restricted to users with superadmin privileges."
+    ),
+    request=CreateOrganizerSerializer,
+    responses={
+        201: "Organizer profile created successfully.",
+        400: "Validation error. Check the input fields.",
+        403: "Access forbidden. Only superadmins can perform this action.",
+    },
+)
 class CreateOrganizerView(CreateAPIView):
     """
     API view for creating an Organizer profile.
